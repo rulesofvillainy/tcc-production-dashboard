@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Subtle hover transition for cards */
+    .dashboard-card {
+      transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+
+<body
+  class="bg-[#09090b] text-zinc-100 font-sans antialiased min-h-screen flex flex-col selection:bg-zinc-800 selection:text-zinc-200">
+
+  <!-- Clean, Minimal Header -->
+  <header class="border-b border-zinc-800/80 px-6 py-6 sm:py-8">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight text-zinc-100">Production Hub</h1>
+        <p class="text-sm text-zinc-500 mt-1">Direct access shortcuts for broadcast & stream tools</p>
+      </div>
+      <div id="cardCounter" class="text-xs text-zinc-600 font-mono">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid Area -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-6 py-8 sm:py-10">
+    <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <!-- Cards are populated from the clean JS array below -->
+    </div>
+  </main>
+
+  <!-- Minimal Footer -->
+  <footer class="border-t border-zinc-900 py-6 px-6 text-center text-xs text-zinc-600">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <span>Links open in a new tab</span>
+      <span class="text-zinc-700">Production Hub</span>
+    </div>
+  </footer>
+
+  <script>
+    /**
+     * =========================================================================
+     * DASHBOARD CARD CONFIGURATION
+     * =========================================================================
+     * To add, edit, or remove cards, simply modify this array:
+     *
+     * - Single link card:  Provide 1 item in the `links` list.
+     * - Multi-link card:   Provide 2 (or more) items in the `links` list (e.g., Table 1 & Table 2).
+     * - Available icons:   'sliders', 'layers', 'database', 'video', 'external'
+     * =========================================================================
+     */
+    const DASHBOARD_CARDS = [
+      {
+        title: 'Production Tool',
+        description: 'Production rundown tool. Includes Producer and Caster view',
+        icon: 'sliders',
+        links: [
+          { label: 'Launch Production Tool', url: 'https://prod.thecauldroncup.com/' }
+        ]
+      },
+      {
+        title: 'Inkwell Overlay',
+        description: 'Card Picker and Gameplay Overlay controllers',
+        icon: 'layers',
+        links: [
+          { label: 'Table 1', url: 'https://inkwelloverlay.com/rooms/genie-ariel-mermaid-stitch?token=76ba5b3826c7bd03b51f67a6ac5c2d7cae1940e0eb0299d1047b96a8fa2e1db7' },
+          { label: 'Table 2', url: 'https://inkwelloverlay.com/rooms/simba-alchemist-crown-grub?token=07b259545b2bea760d40adc8cda51e44979585ba0f3725650da86a82d284b5cb' }
+        ]
+      },
+      {
+        title: 'Player Info DB',
+        description: 'View player submitted bios and information. Must be logged into any google account to view.',
+        icon: 'database',
+        links: [
+          { label: 'Open Player Database', url: 'https://script.google.com/macros/s/AKfycbwSwvdyPioFj_ruRL2QylHzCa-SCWlSs5ZM_7K67IIW39JjFc6YK25EdW51QE0IO4_a6g/exec' }
+        ]
+      },
+      {
+        title: 'OBS Remote',
+        description: 'Control OBS via web browser. Must be on same LAN as OBS to use.',
+        icon: 'video',
+        links: [
+          { label: 'Connect OBS Remote', url: 'https://obs-web.niek.tv/' }
+        ]
+      }
+      /* EXAMPLE: To add a new card, simply copy/paste below:
+      ,
+      {
+        title: 'Audio Console',
+        description: 'Master bus audio mixer, level meters, and broadcast stream output monitoring.',
+        icon: 'sliders',
+        links: [
+          { label: 'Open Mixer', url: 'https://example.com/audio' }
+        ]
+      }
+      */
+    ];
+
+    /* Icon SVGs */
+    const ICONS = {
+      sliders: `
+        <svg class="w-5 h-5 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+        </svg>
+      `,
+      layers: `
+        <svg class="w-5 h-5 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3" />
+        </svg>
+      `,
+      database: `
+        <svg class="w-5 h-5 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+        </svg>
+      `,
+      video: `
+        <svg class="w-5 h-5 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+        </svg>
+      `,
+      external: `
+        <svg class="w-5 h-5 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+        </svg>
+      `
+    };
+
+    const ARROW_ICON = `
+      <svg class="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+      </svg>
+    `;
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function renderDashboard() {
+      const container = document.getElementById('cardsContainer');
+      const counter = document.getElementById('cardCounter');
+      container.innerHTML = '';
+
+      if (counter) {
+        counter.textContent = `${DASHBOARD_CARDS.length} tool${DASHBOARD_CARDS.length === 1 ? '' : 's'}`;
+      }
+
+      DASHBOARD_CARDS.forEach((card) => {
+        const cardArticle = document.createElement('article');
+        cardArticle.className = 'dashboard-card bg-[#111114] border border-zinc-800/90 hover:border-zinc-700/80 rounded-2xl p-6 flex flex-col justify-between';
+
+        // Icon resolution
+        const iconSvg = ICONS[card.icon] || ICONS.external;
+
+        // Button generation (Single button vs Dual/Multi button)
+        const isMulti = Array.isArray(card.links) && card.links.length > 1;
+        const gridColsClass = isMulti ? `grid grid-cols-${card.links.length} gap-3` : 'w-full';
+
+        let buttonsHtml = `<div class="${gridColsClass} mt-6 pt-4 border-t border-zinc-800/60">`;
+
+        (card.links || []).forEach((link) => {
+          buttonsHtml += `
+            <a 
+              href="${escapeHtml(link.url)}" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="group flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800/70 hover:bg-zinc-700/80 text-zinc-200 hover:text-white border border-zinc-700/50 hover:border-zinc-600 text-xs font-medium transition-colors duration-150 text-center">
+              <span>${escapeHtml(link.label)}</span>
+              ${ARROW_ICON}
+            </a>
+          `;
+        });
+        buttonsHtml += `</div>`;
+
+        cardArticle.innerHTML = `
+          <div>
+            <div class="flex items-center gap-3.5 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                ${iconSvg}
+              </div>
+              <h2 class="text-base font-semibold text-zinc-100 tracking-tight leading-snug">
+                ${escapeHtml(card.title)}
+              </h2>
+            </div>
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              ${escapeHtml(card.description)}
+            </p>
+          </div>
+          ${buttonsHtml}
+        `;
+
+        container.appendChild(cardArticle);
+      });
+    }
+
+    // Initial render
+    renderDashboard();
+  </script>
+</body>
+
+</html>
