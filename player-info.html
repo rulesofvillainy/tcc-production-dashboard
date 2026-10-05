@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Player Intel Hub</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --card-bg: #151d2f;
+            --card-subtle: #0f1726;
+            --card-border: #243049;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-light: #818cf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --tag-playhub: #0284c7;
+            --tag-survey: #10b981;
+            --danger: #ef4444;
+            --font-stack: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-stack);
+            line-height: 1.5;
+            padding: 16px 24px 40px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        /* Top Navigation Bar */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1000;
+            flex-wrap: wrap;
+        }
+
+        .header-brand h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        /* Centered Search Wrapper */
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            max-width: 580px;
+            min-width: 280px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 11px 16px;
+            border-radius: 10px;
+            background: #151d2f;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+        }
+
+        /* Floating Search Dropdown */
+        .search-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: #182239;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            max-height: 420px;
+            overflow-y: auto;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            padding: 6px;
+            z-index: 2000;
+        }
+
+        .search-dropdown.active {
+            display: flex;
+        }
+
+        .dropdown-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid transparent;
+            transition: background 0.15s;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .dropdown-player-meta {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dropdown-handle {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #fff;
+        }
+
+        .dropdown-sub {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .dropdown-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .btn-pin {
+            background: #243049;
+            border: 1px solid #3b4d75;
+            color: var(--text-main);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+
+        .btn-pin:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Top Tools & Status */
+        .header-tools {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            font-size: 0.78rem;
+            padding: 5px 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 999px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .status-badge.synced {
+            color: #34d399;
+            border-color: #059669;
+        }
+
+        .btn-upload {
+            background: #243049;
+            border: 1px solid #334155;
+            color: var(--text-main);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: none;
+        }
+
+        /* Diagnostics Tray */
+        .debug-tray {
+            background: #0f1726;
+            border: 1px dashed var(--card-border);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            display: none;
+            line-height: 1.6;
+        }
+
+        /* Comparison / Pinned Slots Grid */
+        .slots-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            align-items: start;
+        }
+
+        @media (max-width: 980px) {
+            .slots-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Individual Player Card */
+        .player-slot {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 24px;
+            min-height: 540px;
+            position: relative;
+        }
+
+        .slot-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 480px;
+            border: 2px dashed #222f46;
+            border-radius: 10px;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .slot-placeholder h3 {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+
+        .slot-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
+        }
+
+        .slot-badge-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--primary-light);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+        }
+
+        .btn-unpin {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-unpin:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        /* Player Details Layout */
+        .profile-hero {
+            margin-bottom: 20px;
+        }
+
+        .profile-title-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .player-handle {
+            font-size: 1.7rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .aliases-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .alias-item strong {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .source-pills {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .pill {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 2px 7px;
+            border-radius: 4px;
+            letter-spacing: 0.03em;
+        }
+
+        .pill.playhub {
+            background: rgba(2, 132, 199, 0.2);
+            color: var(--tag-playhub);
+        }
+
+        .pill.survey {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--tag-survey);
+        }
+
+        .pill.pronouns {
+            background: rgba(148, 163, 184, 0.15);
+            color: var(--text-muted);
+            text-transform: lowercase;
+            font-weight: 500;
+            font-size: 0.78rem;
+            padding: 2px 7px;
+        }
+
+        /* Hero Stat Cards */
+        .hero-stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .hero-stat-card {
+            background: linear-gradient(145deg, #182239 0%, #101827 100%);
+            border: 1px solid #283754;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+
+        .hero-stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .hero-stat-val {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-top: 3px;
+            color: #ffffff;
+        }
+
+        .hero-stat-sub {
+            font-size: 0.8rem;
+            color: #38bdf8;
+            margin-top: 1px;
+            font-weight: 500;
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 20px 0 10px;
+        }
+
+        .section-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--primary-light);
+        }
+
+        .section-divider {
+            flex: 1;
+            height: 1px;
+            background: var(--card-border);
+        }
+
+        /* Grid of Raw Fields */
+        .fields-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+
+        .field-box {
+            background: var(--card-subtle);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 8px 10px;
+            border-radius: 6px;
+        }
+
+        .field-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .field-value {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 2px;
+            word-break: break-word;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Top Bar with Integrated Search -->
+        <header>
+            <div class="header-brand">
+                <h1>Player Intel Hub</h1>
+            </div>
+
+            <div class="search-wrapper">
+                <input type="text" id="top-search-input" class="search-input"
+                    placeholder="Search handle, name, deck, notes..." autocomplete="off" />
+                <!-- Dropdown overlay -->
+                <div id="search-dropdown" class="search-dropdown"></div>
+            </div>
+
+            <div class="header-tools">
+                <div id="sync-status" class="status-badge" title="Click to view merge diagnostics">Loading CSVs...</div>
+                <label id="upload-label" class="btn-upload">
+                    Select CSVs
+                    <input type="file" id="manual-file-input" multiple accept=".csv" style="display:none;" />
+                </label>
+            </div>
+        </header>
+
+        <!-- Diagnostic Inspector Tray -->
+        <div id="debug-tray" class="debug-tray"></div>
+
+        <!-- Dual Player Pinning Slots -->
+        <main class="slots-grid">
+            <!-- Slot 1 (Player 1) -->
+            <div id="slot-1" class="player-slot">
+                <div class="slot-placeholder">
+                    <h3>Slot 1 Empty</h3>
+                    <p>Use the search bar above to find and pin Player 1.</p>
+                </div>
+            </div>
+
+            <!-- Slot 2 (Player 2) -->
+            <div id="slot-2" class="player-slot">
+                <div class="slot-placeholder">
+                    <h3>Slot 2 Empty</h3>
+                    <p>Use the search bar above to find and pin Player 2 for side-by-side comparison.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const CONFIG = {
+            playhubCsvPath: './playhub.csv',
+            surveyCsvPath: './survey.csv'
+        };
+
+        let mergedProfiles = [];
+        let pinnedP1Index = null;
+        let pinnedP2Index = null;
+        let debugSummary = {};
+
+        // Clean value for display and logic
+        function cleanVal(val) {
+            if (val === undefined || val === null) return '';
+            return val.toString().trim();
+        }
+
+        // Canonical numeric/text ID cleaner (removes Excel ".0" float artifacts and spaces)
+        function cleanId(val) {
+            if (val === undefined || val === null) return '';
+            let str = val.toString().trim();
+            str = str.replace(/\.0+$/, ''); // 101.0 -> 101
+            return str.toLowerCase();
+        }
+
+        // General string normalization for matching handles
+        function norm(str) {
+            return cleanVal(str).toLowerCase().replace(/[^a-z0-9]/g, '');
+        }
+
+        // Strict column locator using exact matches
+        function findExactColumn(row, exactList) {
+            const keys = Object.keys(row).filter(k => k && k.trim() !== '');
+            return keys.find(k => {
+                const clean = norm(k);
+                return exactList.some(target => clean === target);
+            });
+        }
+
+        function getFieldValue(row, exactList) {
+            const key = findExactColumn(row, exactList);
+            return key && row[key] ? cleanVal(row[key]) : '';
+        }
+
+        const parseOptions = {
+            header: true,
+            skipEmptyLines: 'greedy',
+            transformHeader: h => h.replace(/^\uFEFF/, '').trim(),
+            transform: v => typeof v === 'string' ? v.trim() : v
+        };
+
+        function fetchCsv(url) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(url, {
+                    ...parseOptions,
+                    download: true,
+                    complete: res => resolve(res.data),
+                    error: err => reject(err)
+                });
+            });
+        }
+
+        function parseUploadedFile(file) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(file, {
+                    ...parseOptions,
+                    complete: res => resolve(res.data),
+                    error: err => reject(err)
+                });
+            });
+        }
+
+        // ---------------------------------------------------------------------------
+        // Data Linker: Resolves Playhub (col 1 / user_id) to Survey (last col / id)
+        // ---------------------------------------------------------------------------
+        function mergeDatasets(playhubRows, surveyRows) {
+            const profiles = [];
+            const idMap = new Map();
+            const handleMap = new Map();
+
+            let matchedByIdCount = 0;
+            let matchedByHandleCount = 0;
+
+            // 1. Process Playhub Roster
+            playhubRows.forEach(row => {
+                const validKeys = Object.keys(row).filter(k => k && k.trim() !== '');
+                if (validKeys.length === 0) return;
+
+                // Extract User ID: check exact headers, otherwise strictly first column
+                const explicitIdCol = findExactColumn(row, ['userid', 'user_id', 'id', 'playerid', 'player_id']);
+                const idCol = explicitIdCol || validKeys[0];
+                const rawId = idCol ? cleanId(row[idCol]) : '';
+
+                const username = getFieldValue(row, ['username', 'rphname', 'user']);
+                const displayName = getFieldValue(row, ['displayname', 'playername', 'name']);
+                const pronouns = getFieldValue(row, ['pronoun', 'pronouns']);
+
+                if (!rawId && !username && !displayName && Object.values(row).filter(Boolean).length === 0) return;
+
+                const profile = {
+                    internalId: rawId,
+                    username,
+                    rphName: '',
+                    displayName,
+                    playerName: '',
+                    pronouns,
+                    hasPlayhub: true,
+                    hasSurvey: false,
+                    playhubRaw: { ...row },
+                    surveyRaw: {}
+                };
+
+                profiles.push(profile);
+                if (rawId) idMap.set(rawId, profile);
+                if (username) handleMap.set(norm(username), profile);
+            });
+
+            // 2. Process & Merge Survey Responses
+            surveyRows.forEach(row => {
+                const validKeys = Object.keys(row).filter(k => k && k.trim() !== '');
+                if (validKeys.length === 0) return;
+
+                // Extract ID: check exact headers, otherwise strictly last column
+                const explicitIdCol = findExactColumn(row, ['id', 'userid', 'user_id', 'playerid', 'player_id']);
+                const idCol = explicitIdCol || validKeys[validKeys.length - 1];
+                const rawId = idCol ? cleanId(row[idCol]) : '';
+
+                const rphName = getFieldValue(row, ['rphname', 'username']);
+                const playerName = getFieldValue(row, ['playername', 'name', 'fullname']);
+                const pronouns = getFieldValue(row, ['pronoun', 'pronouns']);
+
+                if (!rawId && !rphName && !playerName && Object.values(row).filter(Boolean).length === 0) return;
+
+                let target = null;
+
+                // Primary linking check: Match on ID
+                if (rawId && idMap.has(rawId)) {
+                    target = idMap.get(rawId);
+                    matchedByIdCount++;
+                }
+                // Secondary linking check: Match Survey RPH Name to Playhub Username
+                else if (rphName && handleMap.has(norm(rphName))) {
+                    target = handleMap.get(norm(rphName));
+                    matchedByHandleCount++;
+                }
+
+                if (target) {
+                    target.hasSurvey = true;
+                    if (!target.internalId && rawId) target.internalId = rawId;
+                    if (!target.rphName && rphName) target.rphName = rphName;
+                    if (!target.playerName && playerName) target.playerName = playerName;
+                    if (!target.pronouns && pronouns) target.pronouns = pronouns;
+                    target.surveyRaw = { ...row };
+                } else {
+                    const newProfile = {
+                        internalId: rawId,
+                        username: '',
+                        rphName,
+                        displayName: '',
+                        playerName,
+                        pronouns,
+                        hasPlayhub: false,
+                        hasSurvey: true,
+                        playhubRaw: {},
+                        surveyRaw: { ...row }
+                    };
+                    profiles.push(newProfile);
+                    if (rawId) idMap.set(rawId, newProfile);
+                    if (rphName) handleMap.set(norm(rphName), newProfile);
+                }
+            });
+
+            // 3. Resolve Primary Handles & Real Names
+            profiles.forEach(p => {
+                p.primaryHandle = p.rphName || p.username || p.playerName || p.displayName || (p.internalId ? `Player #${p.internalId}` : 'Unnamed Player');
+
+                const candidates = [p.playerName, p.displayName].filter(Boolean);
+                p.resolvedRealName = '';
+                for (const c of candidates) {
+                    if (norm(c) !== norm(p.primaryHandle)) {
+                        p.resolvedRealName = c;
+                        break;
+                    }
+                }
+            });
+
+            debugSummary = {
+                playhubCount: playhubRows.length,
+                surveyCount: surveyRows.length,
+                totalMerged: profiles.length,
+                matchedById: matchedByIdCount,
+                matchedByHandle: matchedByHandleCount
+            };
+
+            return profiles;
+        }
+
+        // ---------------------------------------------------------------------------
+        // Special Stats Aggregator (Record, Archetype, Best Finish)
+        // ---------------------------------------------------------------------------
+        function extractSpecialStats(playhubData, surveyData) {
+            const combined = { ...playhubData, ...surveyData };
+            const consumedKeys = new Set();
+
+            // Match Record
+            const winKey = Object.keys(combined).find(k => norm(k) === 'wins' || norm(k) === 'win');
+            const lossKey = Object.keys(combined).find(k => norm(k) === 'losses' || norm(k) === 'loss');
+            const tieKey = Object.keys(combined).find(k => norm(k) === 'ties' || norm(k) === 'tie' || norm(k) === 'draws');
+            const winRateKey = Object.keys(combined).find(k => ['winpercent', 'winrate', 'winpct', 'win%'].includes(norm(k)));
+
+            let recordStr = '';
+            let winRateStr = '';
+
+            if (winKey || lossKey) {
+                const w = winKey ? combined[winKey] : '0';
+                const l = lossKey ? combined[lossKey] : '0';
+                const t = tieKey ? combined[tieKey] : '';
+                recordStr = t && t !== '0' ? `${w} - ${l} - ${t}` : `${w} - ${l}`;
+
+                if (winKey) consumedKeys.add(winKey);
+                if (lossKey) consumedKeys.add(lossKey);
+                if (tieKey) consumedKeys.add(tieKey);
+            }
+
+            if (winRateKey && combined[winRateKey]) {
+                let wr = combined[winRateKey].toString().trim();
+                if (!wr.includes('%') && !isNaN(wr) && wr !== '') {
+                    const num = parseFloat(wr);
+                    wr = num <= 1 && num > 0 ? `${(num * 100).toFixed(1)}%` : `${num}%`;
+                }
+                winRateStr = `${wr} Win Rate`;
+                consumedKeys.add(winRateKey);
+            }
+
+            // Best Finish + Best Event
+            const bestFinishKey = Object.keys(combined).find(k => norm(k) === 'bestfinish' || norm(k) === 'topfinish');
+            const bestEventKey = Object.keys(combined).find(k => ['bestfinishevent', 'bestevent', 'finishevent'].includes(norm(k)));
+
+            let bestFinishCombined = '';
+            const finishVal = bestFinishKey ? combined[bestFinishKey] : '';
+            const eventVal = bestEventKey ? combined[bestEventKey] : '';
+
+            if (finishVal && eventVal) {
+                bestFinishCombined = `${finishVal} at ${eventVal}`;
+                consumedKeys.add(bestFinishKey);
+                consumedKeys.add(bestEventKey);
+            } else if (finishVal) {
+                bestFinishCombined = finishVal;
+                consumedKeys.add(bestFinishKey);
+            } else if (eventVal) {
+                bestFinishCombined = eventVal;
+                consumedKeys.add(bestEventKey);
+            }
+
+            // Archetype / Deck
+            const deckKey = Object.keys(combined).find(k => ['deckarchetype', 'archetype', 'deck', 'inks'].includes(norm(k)));
+            let deckVal = '';
+            if (deckKey && combined[deckKey]) {
+                deckVal = combined[deckKey];
+                consumedKeys.add(deckKey);
+            }
+
+            return { recordStr, winRateStr, bestFinishCombined, deckVal, consumedKeys };
+        }
+
+        function isFieldSuppressed(key, consumedKeys) {
+            if (consumedKeys.has(key)) return true;
+            const n = norm(key);
+            // Ignore timestamps completely
+            if (n === 'timestamp' || n.includes('timestamp')) return true;
+            // Suppress all ID columns
+            if (['id', 'userid', 'playerid'].includes(n)) return true;
+            // Suppress names/pronouns already shown in header
+            if (['username', 'rphname', 'playername', 'displayname', 'pronoun', 'pronouns', 'name'].includes(n)) return true;
+            return false;
+        }
+
+        // ---------------------------------------------------------------------------
+        // Card Rendering Engine
+        // ---------------------------------------------------------------------------
+        function renderCard(slotNum, playerIndex) {
+            const slotEl = document.getElementById(`slot-${slotNum}`);
+            if (playerIndex === null || !mergedProfiles[playerIndex]) {
+                slotEl.innerHTML = `
+        <div class="slot-placeholder">
+          <h3>Slot ${slotNum} Empty</h3>
+          <p>Use the search bar above to find and pin Player ${slotNum}.</p>
+        </div>
+      `;
+                return;
+            }
+
+            const player = mergedProfiles[playerIndex];
+            const { recordStr, winRateStr, bestFinishCombined, deckVal, consumedKeys } =
+                extractSpecialStats(player.playhubRaw, player.surveyRaw);
+
+            const aliases = [];
+            if (player.resolvedRealName) {
+                aliases.push(`<span class="alias-item">Player Name: <strong>${player.resolvedRealName}</strong></span>`);
+            }
+            if (player.username && norm(player.username) !== norm(player.primaryHandle)) {
+                aliases.push(`<span class="alias-item">Username: <strong>${player.username}</strong></span>`);
+            }
+            if (player.rphName && norm(player.rphName) !== norm(player.primaryHandle) && norm(player.rphName) !== norm(player.username)) {
+                aliases.push(`<span class="alias-item">RPH: <strong>${player.rphName}</strong></span>`);
+            }
+
+            const renderFieldGrid = (rawObj) => {
+                const entries = Object.entries(rawObj).filter(([k, v]) => {
+                    return v && v.toString().trim() !== '' && !isFieldSuppressed(k, consumedKeys);
+                });
+
+                if (entries.length === 0) {
+                    return '<p style="color: var(--text-muted); font-size: 0.82rem; padding: 4px 0;">No additional information provided.</p>';
+                }
+
+                return `
+        <div class="fields-grid">
+          ${entries.map(([label, val]) => `
+            <div class="field-box">
+              <div class="field-label">${label}</div>
+              <div class="field-value">${val}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+            };
+
+            let heroCardsHtml = '';
+            if (recordStr || deckVal || bestFinishCombined) {
+                heroCardsHtml = `
+        <div class="hero-stats-row">
+          ${recordStr ? `
+            <div class="hero-stat-card">
+              <div class="hero-stat-label">Match Record</div>
+              <div class="hero-stat-val">${recordStr}</div>${winRateStr ? `<div class="hero-stat-sub">${winRateStr}</div>` : ''}
+            </div>
+          ` : ''}
+
+          ${deckVal ? `
+            <div class="hero-stat-card">
+              <div class="hero-stat-label">Deck Archetype</div>
+              <div class="hero-stat-val" style="font-size:1.15rem;">${deckVal}</div>
+            </div>
+          ` : ''}
+
+          ${bestFinishCombined ? `
+            <div class="hero-stat-card">
+              <div class="hero-stat-label">Best Finish</div>
+              <div class="hero-stat-val" style="font-size:1.05rem;">${bestFinishCombined}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+            }
+
+            slotEl.innerHTML = `
+      <div class="slot-top-bar">
+        <span class="slot-badge-label">Player ${slotNum} Pinned</span>
+        <button class="btn-unpin" onclick="unpinSlot(${slotNum})">Unpin / Clear</button>
+      </div>
+
+      <div class="profile-hero">
+        <div class="profile-title-group">
+          <h2 class="player-handle">${player.primaryHandle}</h2>
+          ${player.pronouns ? `<span class="pill pronouns">${player.pronouns}</span>` : ''}
+        </div>
+
+        <div class="source-pills">
+          ${player.hasPlayhub ? '<span class="pill playhub">Playhub Data</span>' : ''}
+          ${player.hasSurvey ? '<span class="pill survey">Survey Data</span>' : ''}
+        </div>
+
+        ${aliases.length > 0 ? `<div class="aliases-row">${aliases.join('')}</div>` : ''}
+      </div>
+
+      ${heroCardsHtml}
+
+      <div class="section-header">
+        <span class="section-title">Tournament & Game Stats</span>
+        <div class="section-divider"></div>
+      </div>
+      ${renderFieldGrid(player.playhubRaw)}
+
+      <div class="section-header">
+        <span class="section-title">Player Intel & Survey</span>
+        <div class="section-divider"></div>
+      </div>
+      ${renderFieldGrid(player.surveyRaw)}
+    `;
+        }
+
+        // ---------------------------------------------------------------------------
+        // Pinning & Slot Management
+        // ---------------------------------------------------------------------------
+        function pinPlayer(profileIndex, targetSlot) {
+            if (targetSlot === 1) {
+                pinnedP1Index = profileIndex;
+                renderCard(1, pinnedP1Index);
+            } else if (targetSlot === 2) {
+                pinnedP2Index = profileIndex;
+                renderCard(2, pinnedP2Index);
+            }
+
+            closeDropdown();
+            document.getElementById('top-search-input').value = '';
+        }
+
+        function unpinSlot(slotNum) {
+            if (slotNum === 1) {
+                pinnedP1Index = null;
+                renderCard(1, null);
+            } else if (slotNum === 2) {
+                pinnedP2Index = null;
+                renderCard(2, null);
+            }
+        }
+
+        // ---------------------------------------------------------------------------
+        // Top Search Dropdown Handler
+        // ---------------------------------------------------------------------------
+        const searchInput = document.getElementById('top-search-input');
+        const dropdown = document.getElementById('search-dropdown');
+
+        function closeDropdown() {
+            dropdown.classList.remove('active');
+            dropdown.innerHTML = '';
+        }
+
+        function handleSearch() {
+            const q = searchInput.value.trim().toLowerCase();
+            if (!q) {
+                closeDropdown();
+                return;
+            }
+
+            const filtered = mergedProfiles
+                .map((p, idx) => ({ ...p, originalIndex: idx }))
+                .filter(p => {
+                    if (p.primaryHandle.toLowerCase().includes(q)) return true;
+                    if (p.resolvedRealName && p.resolvedRealName.toLowerCase().includes(q)) return true;
+                    if (p.username && p.username.toLowerCase().includes(q)) return true;
+                    if (p.rphName && p.rphName.toLowerCase().includes(q)) return true;
+                    if (p.displayName && p.displayName.toLowerCase().includes(q)) return true;
+                    if (p.playerName && p.playerName.toLowerCase().includes(q)) return true;
+                    if (p.internalId && p.internalId.toLowerCase().includes(q)) return true;
+
+                    const allValues = [
+                        ...Object.values(p.playhubRaw),
+                        ...Object.values(p.surveyRaw)
+                    ].join(' ').toLowerCase();
+
+                    return allValues.includes(q);
+                });
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = `<div style="padding:12px; color:var(--text-muted); font-size:0.88rem;">No matching players found.</div>`;
+                dropdown.classList.add('active');
+                return;
+            }
+
+            const bothPinned = (pinnedP1Index !== null) && (pinnedP2Index !== null);
+            const p1Name = pinnedP1Index !== null ? mergedProfiles[pinnedP1Index].primaryHandle : 'P1';
+            const p2Name = pinnedP2Index !== null ? mergedProfiles[pinnedP2Index].primaryHandle : 'P2';
+
+            dropdown.innerHTML = '';
+            filtered.slice(0, 15).forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+
+                let actionsHtml = '';
+                if (!bothPinned) {
+                    if (pinnedP1Index === null) {
+                        actionsHtml = `<button class="btn-pin" onclick="pinPlayer(${p.originalIndex}, 1)">Pin to P1</button>`;
+                    } else {
+                        actionsHtml = `<button class="btn-pin" onclick="pinPlayer(${p.originalIndex}, 2)">Pin to P2</button>`;
+                    }
+                } else {
+                    // Both slots filled: prompt replacement options
+                    actionsHtml = `
+          <button class="btn-pin" onclick="pinPlayer(${p.originalIndex}, 1)" title="Replace ${p1Name}">Replace P1</button>
+          <button class="btn-pin" onclick="pinPlayer(${p.originalIndex}, 2)" title="Replace ${p2Name}">Replace P2</button>
+        `;
+                }
+
+                const subLabel = [p.resolvedRealName, p.username && p.username !== p.primaryHandle ? `@${p.username}` : '']
+                    .filter(Boolean)
+                    .join(' • ');
+
+                item.innerHTML = `
+        <div class="dropdown-player-meta">
+          <span class="dropdown-handle">${p.primaryHandle}</span>
+          ${subLabel ? `<span class="dropdown-sub">${subLabel}</span>` : ''}
+        </div>
+        <div class="dropdown-actions">
+          ${actionsHtml}
+        </div>
+      `;
+
+                dropdown.appendChild(item);
+            });
+
+            dropdown.classList.add('active');
+        }
+
+        searchInput.addEventListener('input', handleSearch);
+        searchInput.addEventListener('focus', () => {
+            if (searchInput.value.trim()) handleSearch();
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        // ---------------------------------------------------------------------------
+        // Diagnostics Tray
+        // ---------------------------------------------------------------------------
+        document.getElementById('sync-status').addEventListener('click', () => {
+            const tray = document.getElementById('debug-tray');
+            if (tray.style.display === 'block') {
+                tray.style.display = 'none';
+            } else {
+                tray.style.display = 'block';
+                tray.innerHTML = `
+        <strong>Merge Diagnostics:</strong><br>
+        • Playhub Rows: <strong>${debugSummary.playhubCount || 0}</strong><br>
+        • Survey Responses: <strong>${debugSummary.surveyCount || 0}</strong><br>
+        • Merged Profile Count: <strong>${debugSummary.totalMerged || 0}</strong><br>
+        • Successfully Linked by ID (Playhub col 1 ↔ Survey last col): <strong>${debugSummary.matchedById || 0}</strong><br>
+        • Successfully Linked by Handle (RPH Name ↔ Username): <strong>${debugSummary.matchedByHandle || 0}</strong>
+      `;
+            }
+        });
+
+        // ---------------------------------------------------------------------------
+        // Load & Initialize
+        // ---------------------------------------------------------------------------
+        async function init() {
+            const status = document.getElementById('sync-status');
+            const uploadLabel = document.getElementById('upload-label');
+
+            try {
+                const [playhubRows, surveyRows] = await Promise.all([
+                    fetchCsv(CONFIG.playhubCsvPath),
+                    fetchCsv(CONFIG.surveyCsvPath)
+                ]);
+
+                mergedProfiles = mergeDatasets(playhubRows, surveyRows);
+                status.textContent = `Loaded (${mergedProfiles.length} Players)`;
+                status.classList.add('synced');
+            } catch (err) {
+                console.warn('Auto fetch failed; use manual file selector.', err);
+                status.textContent = 'Select CSVs Manually';
+                uploadLabel.style.display = 'inline-block';
+            }
+        }
+
+        document.getElementById('manual-file-input').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            let playhubRows = [];
+            let surveyRows = [];
+
+            for (const file of files) {
+                const name = file.name.toLowerCase();
+                if (name.includes('playhub') || name.includes('summary')) {
+                    playhubRows = await parseUploadedFile(file);
+                } else if (name.includes('survey') || name.includes('form')) {
+                    surveyRows = await parseUploadedFile(file);
+                }
+            }
+
+            if (playhubRows.length || surveyRows.length) {
+                mergedProfiles = mergeDatasets(playhubRows, surveyRows);
+                const status = document.getElementById('sync-status');
+                status.textContent = `Loaded (${mergedProfiles.length} Players)`;
+                status.classList.add('synced');
+                document.getElementById('upload-label').style.display = 'none';
+            } else {
+                alert('Please select both "playhub.csv" and "survey.csv" files.');
+            }
+        });
+
+        init();
+    </script>
+</body>
+
+</html>
