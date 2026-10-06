@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Broadcast Schedule</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar for dark theme */
+    ::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    /* Table borders */
+    .schedule-table th,
+    .schedule-table td {
+      border: 1px solid #1e293b;
+    }
+
+    /* Active talent spotlight animation */
+    .chip-spotlight {
+      box-shadow: 0 0 0 2px #f59e0b, 0 0 10px rgba(245, 158, 11, 0.45);
+      transform: scale(1.03);
+      z-index: 10;
+    }
+
+    /* Gentle dimming for non-matching chips during spotlight */
+    .chip-dimmed {
+      opacity: 0.22 !important;
+      filter: grayscale(40%);
+    }
+
+    /* Smooth transitions for interactive chips */
+    .talent-chip {
+      transition: all 140ms ease-in-out;
+    }
+  </style>
+</head>
+
+<body class="bg-[#0b0f19] text-slate-100 min-h-screen font-sans antialiased selection:bg-blue-600 selection:text-white">
+
+  <div class="max-w-[1440px] mx-auto px-3 sm:px-6 py-6 space-y-5">
+
+    <!-- Clean Title & Subtitle Header -->
+    <header class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-800/80 pb-4">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">Broadcast Schedule</h1>
+        <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Tournament rotation and talent schedule • Friday 10/9 –
+          Sunday 10/11</p>
+      </div>
+      <div id="spotlightIndicator" class="text-xs text-slate-400 hidden">
+        Spotlight: <span id="spotlightName" class="font-semibold text-amber-400">None</span>
+        <button onclick="setTalentSpotlight(null)"
+          class="ml-1.5 text-[11px] text-slate-500 hover:text-slate-300 underline">(clear)</button>
+      </div>
+    </header>
+
+    <!-- Controls: Day Filters & Talent Spotlight Bar -->
+    <div class="space-y-3">
+      <!-- Day Selection Tabs -->
+      <div class="flex items-center space-x-1.5 overflow-x-auto pb-1" id="dayTabs">
+        <button onclick="setDayFilter('all')" data-day="all"
+          class="day-tab px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white shadow-sm transition">
+          All Days
+        </button>
+        <button onclick="setDayFilter('friday')" data-day="friday"
+          class="day-tab px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 transition">
+          Friday 10/9
+        </button>
+        <button onclick="setDayFilter('saturday')" data-day="saturday"
+          class="day-tab px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 transition">
+          Saturday 10/10
+        </button>
+        <button onclick="setDayFilter('sunday')" data-day="sunday"
+          class="day-tab px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 transition">
+          Sunday 10/11
+        </button>
+      </div>
+
+      <!-- Spotlight Talent Bar -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs" id="talentBar">
+        <span
+          class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mr-1 select-none">Spotlight:</span>
+        <button onclick="setTalentSpotlight(null)" id="btnTalentAll"
+          class="px-2.5 py-1 rounded-md text-xs font-medium bg-slate-800 text-white border border-slate-700 transition">
+          All
+        </button>
+        <!-- Talent chips rendered dynamically with signature colors -->
+      </div>
+    </div>
+
+    <!-- Main Schedule Table (Read-Only) -->
+    <div class="bg-[#111827] border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+      <div class="overflow-x-auto">
+        <table class="schedule-table w-full border-collapse text-left text-xs min-w-[960px]">
+          <!-- Thinner Compact Header Row -->
+          <thead>
+            <tr class="bg-[#0f172a] text-slate-300 text-[10px] font-bold tracking-wider uppercase select-none">
+              <th class="py-2 px-2.5 w-24">Day</th>
+              <th class="py-2 px-2.5 w-24">Event</th>
+              <th class="py-2 px-2.5 w-28">Start Time</th>
+              <th class="py-2 px-2.5 w-24">Round</th>
+              <th class="py-2 px-2.5 w-32">Caster 1</th>
+              <th class="py-2 px-2.5 w-32">Caster 2</th>
+              <th class="py-2 px-2.5 w-28">Interviewer</th>
+              <th class="py-2 px-2.5 w-28">Card Picker</th>
+              <th class="py-2 px-2.5 w-28">Production</th>
+              <th class="py-2 px-3 min-w-[190px]">Full Break</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-800/80">
+            <!-- Rendered by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* Complete exact 22-row schedule data */
+    const SCHEDULE_DATA = [
+      // Friday 10/9 - Warm Up
+      { id: 1, day: "Friday 10/9", dayKey: "friday", event: "Warm Up", time: "6:00 PM", round: "1", caster1: "Brad", caster2: "Vince", interviewer: "NA", cardPicker: "Courtney", production: "Andy", fullBreak: [] },
+      { id: 2, day: "Friday 10/9", dayKey: "friday", event: "Warm Up", time: "7:00 PM", round: "2", caster1: "Courtney", caster2: "Vince", interviewer: "NA", cardPicker: "Kirsten", production: "Andy", fullBreak: [] },
+      { id: 3, day: "Friday 10/9", dayKey: "friday", event: "Warm Up", time: "8:00 PM", round: "3", caster1: "Kirsten", caster2: "Courtney", interviewer: "NA", cardPicker: "Brad", production: "Andy", fullBreak: [] },
+      { id: 4, day: "Friday 10/9", dayKey: "friday", event: "Warm Up", time: "9:00 PM", round: "4", caster1: "Kirsten", caster2: "Brad", interviewer: "NA", cardPicker: "Vince", production: "Andy", fullBreak: [] },
+
+      // Saturday 10/10 - Main & Cosplay
+      { id: 5, day: "Saturday 10/10", dayKey: "saturday", event: "Main", time: "9:00 AM", round: "1", caster1: "Vince", caster2: "Brando", interviewer: "Kirsten", cardPicker: "Courtney", production: "Andy", fullBreak: ["Brad", "ZeroTheHero", "Avery"] },
+      { id: 6, day: "Saturday 10/10", dayKey: "saturday", event: "Main", time: "10:00 AM", round: "2", caster1: "Brad", caster2: "ZeroTheHero", interviewer: "Vince", cardPicker: "Brando", production: "Andy", fullBreak: ["Kirsten", "Avery", "Courtney"] },
+      { id: 7, day: "Saturday 10/10", dayKey: "saturday", event: "Main", time: "11:00 AM", round: "3", caster1: "Andy", caster2: "Brando", interviewer: "Brad", cardPicker: "ZeroTheHero", production: "Vince", fullBreak: ["Avery", "Courtney", "Kirsten"] },
+      { id: 8, day: "Saturday 10/10", dayKey: "saturday", event: "Main", time: "12:00 PM", round: "4", caster1: "Vince", caster2: "Avery", interviewer: "Kirsten", cardPicker: "Courtney", production: "Andy", fullBreak: ["Brad", "ZeroTheHero", "Brando"] },
+      { id: 9, day: "Saturday 10/10", dayKey: "saturday", event: "COSPLAY", time: "1:00 PM", round: "Cosplay", caster1: "Kirsten", caster2: "", interviewer: "NA", cardPicker: "", production: "Andy", fullBreak: ["Vince", "Brad", "Avery", "ZeroTheHero", "Courtney", "Brando"], isCosplaySpecial: true },
+      { id: 10, day: "Saturday 10/10", dayKey: "saturday", event: "Main", time: "1:30 PM", round: "5", caster1: "Courtney", caster2: "Brando", interviewer: "Brad", cardPicker: "Avery", production: "Andy", fullBreak: ["Vince", "Kirsten"] },
+      { id: 11, day: "Saturday 10/10", dayKey: "saturday", event: "Main", time: "2:30 PM", round: "6", caster1: "Kirsten", caster2: "Avery", interviewer: "Vince", cardPicker: "ZeroTheHero", production: "Andy", fullBreak: ["Brad", "Courtney"] },
+      { id: 12, day: "Saturday 10/10", dayKey: "saturday", event: "Main", time: "3:30 PM", round: "7", caster1: "Courtney", caster2: "ZeroTheHero", interviewer: "Kirsten", cardPicker: "Avery", production: "Andy", fullBreak: ["Vince", "Brad"] },
+      { id: 13, day: "Saturday 10/10", dayKey: "saturday", event: "Main", time: "4:30 PM", round: "8", caster1: "Avery", caster2: "ZeroTheHero", interviewer: "Brad", cardPicker: "Courtney", production: "Andy", fullBreak: ["Vince", "Kirsten"] },
+
+      // Sunday 10/11 - Main Finals & Runback 1K
+      { id: 14, day: "Sunday 10/11", dayKey: "sunday", event: "Main", time: "9:00 AM", round: "Top 16", caster1: "Vince", caster2: "Brad", interviewer: "Kirsten", cardPicker: "ZeroTheHero", production: "Andy", fullBreak: ["Avery", "ZeroTheHero"] },
+      { id: 15, day: "Sunday 10/11", dayKey: "sunday", event: "Main", time: "10:00 AM", round: "Top 8", caster1: "Kirsten", caster2: "Courtney", interviewer: "Brad", cardPicker: "ZeroTheHero", production: "Andy", fullBreak: ["ZeroTheHero", "Vince"] },
+      { id: 16, day: "Sunday 10/11", dayKey: "sunday", event: "Main", time: "11:00 AM", round: "Top 4", caster1: "ZeroTheHero", caster2: "Avery", interviewer: "Kirsten", cardPicker: "Courtney", production: "Andy", fullBreak: ["Brad", "Courtney"] },
+      { id: 17, day: "Sunday 10/11", dayKey: "sunday", event: "Main", time: "12:00 PM", round: "Semi-Finals", caster1: "Kirsten", caster2: "Brad", interviewer: "Vince", cardPicker: "Vince", production: "Andy", fullBreak: ["Avery", "Kirsten"] },
+      { id: 18, day: "Sunday 10/11", dayKey: "sunday", event: "Main", time: "1:00 PM", round: "Finals", caster1: "Andy", caster2: "Vince", interviewer: "Kirsten", cardPicker: "Avery", production: "Brad", fullBreak: ["ZeroTheHero", "Avery"], isFinalsDivider: true },
+      { id: 19, day: "Sunday 10/11", dayKey: "sunday", event: "Runback 1K", time: "2:00 PM", round: "Top 8?", caster1: "Courtney", caster2: "Avery", interviewer: "", cardPicker: "Brad", production: "Andy", fullBreak: ["Kirsten", "Vince"] },
+      { id: 20, day: "Sunday 10/11", dayKey: "sunday", event: "Runback 1K", time: "3:00 PM", round: "Top 4?", caster1: "Andy", caster2: "Brad", interviewer: "", cardPicker: "Kirsten", production: "Vince", fullBreak: ["Avery", "Courtney"] },
+      { id: 21, day: "Sunday 10/11", dayKey: "sunday", event: "Runback 1K", time: "4:00 PM", round: "Semi-Finals?", caster1: "Andy", caster2: "Kirsten", interviewer: "", cardPicker: "Courtney", production: "Vince", fullBreak: ["Avery", "Brad"] },
+      { id: 22, day: "Sunday 10/11", dayKey: "sunday", event: "Runback 1K", time: "5:00 PM", round: "Finals", caster1: "Brad", caster2: "Vince", interviewer: "", cardPicker: "Avery", production: "Andy", fullBreak: ["Kirsten", "Courtney"] }
+    ];
+
+    /* Rich, dark-mode optimized colors for talent */
+    const TALENT_CONFIG = {
+      "Brad": {
+        badge: "bg-[#14532d] text-[#bbf7d0] border border-[#166534]",
+        breakBadge: "bg-[#14532d] text-[#bbf7d0] border border-[#166534]"
+      },
+      "Vince": {
+        badge: "bg-[#4a1d96] text-[#ede9fe] border border-[#6b21a8]",
+        breakBadge: "bg-[#4a1d96] text-[#ede9fe] border border-[#6b21a8]"
+      },
+      "Courtney": {
+        badge: "bg-[#064e3b] text-[#a7f3d0] border border-[#047857]",
+        breakBadge: "bg-[#064e3b] text-[#a7f3d0] border border-[#047857]"
+      },
+      "Kirsten": {
+        badge: "bg-[#1e3a8a] text-[#dbeafe] border border-[#1d4ed8]",
+        breakBadge: "bg-[#1e3a8a] text-[#dbeafe] border border-[#1d4ed8]"
+      },
+      "Andy": {
+        badge: "bg-[#0c4a6e] text-[#e0f2fe] border border-[#0284c7]",
+        breakBadge: "bg-[#0c4a6e] text-[#e0f2fe] border border-[#0284c7]"
+      },
+      "Brando": {
+        badge: "bg-[#7f1d1d] text-[#fee2e2] border border-[#991b1b]",
+        breakBadge: "bg-[#7f1d1d] text-[#fee2e2] border border-[#991b1b]"
+      },
+      "ZeroTheHero": {
+        badge: "bg-[#27272a] text-[#f4f4f5] border border-[#3f3f46]",
+        breakBadge: "bg-[#27272a] text-[#f4f4f5] border border-[#3f3f46]"
+      },
+      "Avery": {
+        badge: "bg-[#78350f] text-[#fef3c7] border border-[#92400e]",
+        breakBadge: "bg-[#78350f] text-[#fef3c7] border border-[#92400e]"
+      }
+    };
+
+    const TALENT_NAMES = Object.keys(TALENT_CONFIG);
+
+    // Filter states
+    let currentDayFilter = 'all';
+    let currentSpotlight = null;
+
+    function getEventTag(eventName) {
+      switch (eventName) {
+        case "Warm Up":
+          return `<span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Warm Up</span>`;
+        case "Main":
+          return `<span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-500/15 text-sky-300 border border-sky-500/30">Main</span>`;
+        case "COSPLAY":
+          return `<span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-orange-600/30 text-orange-300 border border-orange-500/40">COSPLAY</span>`;
+        case "Runback 1K":
+          return `<span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Runback 1K</span>`;
+        default:
+          return `<span class="text-slate-400 font-mono text-xs">${eventName}</span>`;
+      }
+    }
+
+    function renderTalentChip(name, isBreakPill = false) {
+      if (!name || name === "NA" || name === "-") {
+        return `<span class="text-slate-500 font-mono text-[11px] pl-1">NA</span>`;
+      }
+
+      const conf = TALENT_CONFIG[name];
+      if (!conf) {
+        return `<span class="text-slate-400 text-xs">${name}</span>`;
+      }
+
+      const isSpotlighted = currentSpotlight === name;
+      const isDimmed = currentSpotlight && !isSpotlighted;
+
+      const spotlightClass = isSpotlighted ? 'chip-spotlight' : '';
+      const dimmedClass = isDimmed ? 'chip-dimmed' : '';
+
+      if (isBreakPill) {
+        return `
+          <button 
+            type="button" 
+            onclick="setTalentSpotlight('${name}', event)"
+            title="Spotlight ${name}"
+            class="talent-chip inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${conf.breakBadge} ${spotlightClass} ${dimmedClass}"
+          >
+            ${name}
+          </button>
+        `;
+      }
+
+      // Flat rectangular chip for table slots (NO arrows / carets)
+      return `
+        <button 
+          type="button" 
+          onclick="setTalentSpotlight('${name}', event)"
+          title="Spotlight ${name}"
+          class="talent-chip w-full text-left px-2 py-1 rounded text-xs font-semibold tracking-wide ${conf.badge} ${spotlightClass} ${dimmedClass} hover:brightness-110"
+        >
+          <span class="truncate block">${name}</span>
+        </button>
+      `;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      const filtered = SCHEDULE_DATA.filter(row => {
+        if (currentDayFilter === 'all') return true;
+        return row.dayKey === currentDayFilter;
+      });
+
+      let lastDay = "";
+
+      filtered.forEach((row, index) => {
+        // Day group divider if transitioning between days
+        if (currentDayFilter === 'all' && lastDay !== "" && row.day !== lastDay) {
+          const divider = document.createElement("tr");
+          divider.className = "bg-[#080d16] border-y-2 border-black";
+          divider.innerHTML = `<td colspan="10" class="py-1 px-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest">${row.day}</td>`;
+          tbody.appendChild(divider);
+        }
+        lastDay = row.day;
+
+        const tr = document.createElement("tr");
+        let trClasses = "hover:bg-slate-800/40 transition-colors";
+
+        // Red dividing border under Sunday Finals before Runback 1K
+        if (row.isFinalsDivider) {
+          trClasses += " border-b-2 border-red-600";
+        }
+
+        tr.className = trClasses;
+
+        // Saturday Cosplay Host special layout
+        if (row.isCosplaySpecial) {
+          tr.innerHTML = `
+            <td class="py-2 px-2.5 font-medium whitespace-nowrap text-slate-300">${row.day}</td>
+            <td class="py-2 px-2.5">${getEventTag(row.event)}</td>
+            <td class="py-2 px-2.5 font-mono text-slate-300 whitespace-nowrap">${row.time}</td>
+            <td class="py-2 px-2.5 font-medium text-amber-300 whitespace-nowrap">${row.round}</td>
+            
+            <!-- Kirsten spanning Casters, Interviewer, and Card Picker -->
+            <td colspan="4" class="p-1">
+              <button 
+                type="button" 
+                onclick="setTalentSpotlight('Kirsten', event)" 
+                class="talent-chip w-full text-left px-2.5 py-1 rounded text-xs font-bold ${TALENT_CONFIG['Kirsten'].badge} ${currentSpotlight === 'Kirsten' ? 'chip-spotlight' : (currentSpotlight ? 'chip-dimmed' : '')}"
+              >
+                <span>Kirsten — Cosplay Host & Coverage</span>
+              </button>
+            </td>
+
+            <td class="p-1">${renderTalentChip(row.production)}</td>
+            <td class="py-1.5 px-3">
+              <div class="flex flex-wrap gap-1 items-center">
+                ${row.fullBreak.map(b => renderTalentChip(b, true)).join("")}
+              </div>
+            </td>
+          `;
+        } else {
+          // Standard schedule row
+          tr.innerHTML = `
+            <td class="py-2 px-2.5 font-medium whitespace-nowrap text-slate-300">${row.day}</td>
+            <td class="py-2 px-2.5">${getEventTag(row.event)}</td>
+            <td class="py-2 px-2.5 font-mono text-slate-300 whitespace-nowrap">${row.time}</td>
+            <td class="py-2 px-2.5 font-medium text-slate-200 whitespace-nowrap">${row.round}</td>
+            <td class="p-1">${renderTalentChip(row.caster1)}</td>
+            <td class="p-1">${renderTalentChip(row.caster2)}</td>
+            <td class="p-1">${renderTalentChip(row.interviewer)}</td>
+            <td class="p-1">${renderTalentChip(row.cardPicker)}</td>
+            <td class="p-1">${renderTalentChip(row.production)}</td>
+            <td class="py-1.5 px-3">
+              <div class="flex flex-wrap gap-1 items-center">
+                ${(row.fullBreak && row.fullBreak.length > 0)
+              ? row.fullBreak.map(b => renderTalentChip(b, true)).join("")
+              : '<span class="text-slate-600 font-mono text-[11px] pl-1">—</span>'}
+              </div>
+            </td>
+          `;
+        }
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderTalentBar() {
+      const container = document.getElementById("talentBar");
+
+      // Preserve the "All" button
+      const allBtn = document.getElementById("btnTalentAll");
+      if (!currentSpotlight) {
+        allBtn.className = "px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-600 text-white shadow transition";
+      } else {
+        allBtn.className = "px-2.5 py-1 rounded-md text-xs font-medium bg-slate-800 text-slate-400 hover:text-white transition";
+      }
+
+      // Remove previously generated talent buttons
+      const existingChips = container.querySelectorAll(".talent-bar-chip");
+      existingChips.forEach(c => c.remove());
+
+      TALENT_NAMES.forEach(name => {
+        const conf = TALENT_CONFIG[name];
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.onclick = (e) => setTalentSpotlight(name, e);
+
+        const isActive = currentSpotlight === name;
+        const activeClass = isActive
+          ? 'ring-2 ring-amber-400 shadow scale-105 font-bold ' + conf.badge
+          : 'font-semibold ' + conf.badge + ' opacity-85 hover:opacity-100';
+
+        btn.className = `talent-bar-chip px-2.5 py-1 rounded-md text-xs transition-all whitespace-nowrap ${activeClass}`;
+        btn.textContent = name;
+        container.appendChild(btn);
+      });
+
+      // Update indicator text
+      const indicator = document.getElementById("spotlightIndicator");
+      const spotlightName = document.getElementById("spotlightName");
+      if (currentSpotlight) {
+        indicator.classList.remove("hidden");
+        spotlightName.textContent = currentSpotlight;
+      } else {
+        indicator.classList.add("hidden");
+      }
+    }
+
+    function setDayFilter(dayKey) {
+      currentDayFilter = dayKey;
+
+      document.querySelectorAll(".day-tab").forEach(tab => {
+        if (tab.getAttribute("data-day") === dayKey) {
+          tab.className = "day-tab px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white shadow-sm transition";
+        } else {
+          tab.className = "day-tab px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 transition";
+        }
+      });
+
+      renderTable();
+    }
+
+    function setTalentSpotlight(name, event) {
+      if (event) {
+        event.stopPropagation();
+      }
+
+      if (currentSpotlight === name || name === null) {
+        currentSpotlight = null;
+      } else {
+        currentSpotlight = name;
+      }
+
+      renderTalentBar();
+      renderTable();
+    }
+
+    // Initialize application
+    window.addEventListener("DOMContentLoaded", () => {
+      renderTalentBar();
+      renderTable();
+    });
+  </script>
+</body>
+
+</html>
